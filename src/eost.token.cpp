@@ -178,15 +178,18 @@ namespace eost {
     }
 
     void token::cantransfer(asset quantity, bool is_transfer){
-        eosio_assert(quantity.symbol.is_valid(), "ERR::CANTRANSFER_INVALID_SYMBOL::invalid symbol name");
-        auto sym_name = quantity.symbol.code().raw();
-        stats statstable(_self, sym_name);
-        auto token = statstable.find(sym_name);
-        eosio_assert(token != statstable.end(), "ERR::UNLOCK_NON_EXISTING_SYMBOL::token with symbol does not exist, create token before unlock");
-        const auto &st = *token;
+
+        auto sym = quantity.symbol;
+        eosio_assert( sym.is_valid(), "invalid symbol name" );
+
+        stats statstable( _self, sym.code().raw() );
+        auto existing = statstable.find( sym.code().raw() );
+        eosio_assert( existing != statstable.end(), "token with symbol does not exist, create token before issue" );
+        const auto& st = *existing;
+
         require_auth(st.issuer);
 
-        statstable.modify(st, name{}, [&](auto &s) {
+        statstable.modify(st, same_payer, [&](auto &s) {
             s.transfer_locked = is_transfer;
         });
     }
@@ -224,4 +227,4 @@ namespace eost {
 
 } /// namespace eost
 
-EOSIO_DISPATCH( eost::token, (create)(issue)(transfer)(open)(close)(retire) )
+EOSIO_DISPATCH( eost::token, (create)(issue)(transfer)(open)(close)(retire)(cantransfer) )
