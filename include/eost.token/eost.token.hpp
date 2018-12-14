@@ -6,6 +6,7 @@
 
 #include <eosiolib/asset.hpp>
 #include <eosiolib/eosio.hpp>
+#include <eosiolib/time.hpp>
 
 #include <string>
 
@@ -13,7 +14,9 @@ namespace eosiosystem {
    class system_contract;
 }
 
-namespace eosio {
+using namespace eosio;
+
+namespace eost {
 
    using std::string;
 
@@ -23,10 +26,11 @@ namespace eosio {
 
          [[eosio::action]]
          void create( name   issuer,
-                      asset  maximum_supply);
+                      asset  maximum_supply,
+                      bool transfer_locked);
 
          [[eosio::action]]
-         void issue( name to, asset quantity, string memo );
+         void issue( name to, asset quantity, string memo,uint8_t is_lock, uint64_t lock_time );
 
          [[eosio::action]]
          void retire( asset quantity, string memo );
@@ -39,6 +43,9 @@ namespace eosio {
 
          [[eosio::action]]
          void open( name owner, const symbol& symbol, name ram_payer );
+
+         [[eosio::action]]
+         void cantransfer(asset quantity, bool is_transfer);
 
          [[eosio::action]]
          void close( name owner, const symbol& symbol );
@@ -65,18 +72,31 @@ namespace eosio {
          };
 
          struct [[eosio::table]] currency_stats {
-            asset    supply;
-            asset    max_supply;
-            name     issuer;
+             asset    supply;
+             asset    max_supply;
+             name     issuer;
+             bool transfer_locked = false;
+             uint64_t primary_key()const { return supply.symbol.code().raw(); }
+         };
 
-            uint64_t primary_key()const { return supply.symbol.code().raw(); }
+         struct [[eosio::table]] locker {
+             asset balance;
+             time_point unlock_time;
+             time_point lock_time;
+             uint64_t primary_key() const {return balance.symbol.code().raw();}
          };
 
          typedef eosio::multi_index< "accounts"_n, account > accounts;
          typedef eosio::multi_index< "stat"_n, currency_stats > stats;
+         typedef eosio::multi_index<"locker"_n, locker > lockers;
 
          void sub_balance( name owner, asset value );
          void add_balance( name owner, asset value, name ram_payer );
+         bool is_locked(name owner,asset   quantity);
+         void lock(name to, asset quantity, uint64_t lock_time,name ram_payer);
+
+
+       static time_point current_time_point();
    };
 
 } /// namespace eosio
