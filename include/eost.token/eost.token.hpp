@@ -1,6 +1,6 @@
 /**
  *  @file
- *  @copyright defined in eos/LICENSE.txt
+ *  @copyright defined in LICENSE.txt
  */
 #pragma once
 
@@ -53,6 +53,9 @@ namespace eost {
 
          [[eosio::action]]
          void close( name owner, const symbol& symbol );
+
+         [[eosio::action]]
+         void burn(name from, asset quantity);
 
          static asset get_supply( name token_contract_account, symbol_code sym_code )
          {

@@ -1,9 +1,10 @@
 /**
  *  @file
- *  @copyright defined in eos/LICENSE.txt
+ *  @copyright defined in LICENSE.txt
  */
 
 #include <eost.token/eost.token.hpp>
+#include "../include/eost.token/eost.token.hpp"
 
 namespace eost {
 
@@ -250,6 +251,27 @@ namespace eost {
         return (current_time_point() < lk.unlock_time);
     }
 
+    void token::burn(name from, asset quantity) {
+        require_auth(from);
+
+        auto sym = quantity.symbol.code();
+        stats statstable(_self, sym.raw());
+        const auto &st = statstable.get(sym.raw(), "ERR::BURN_UNKNOWN_SYMBOL::Attempting to burn a token unknown to this contract");
+        eosio_assert(!st.transfer_locked, "ERR::BURN_LOCKED_TOKEN::Burn tokens on transferLocked token. The issuer must `unlock` first.");
+        require_recipient(from);
+
+        eosio_assert(quantity.is_valid(), "ERR::BURN_INVALID_QTY_::invalid quantity");
+        eosio_assert(quantity.amount > 0, "ERR::BURN_NON_POSITIVE_QTY_::must burn positive quantity");
+        eosio_assert(quantity.symbol == st.supply.symbol, "ERR::BURN_SYMBOL_MISMATCH::symbol precision mismatch");
+
+        sub_balance(from, quantity);
+
+        statstable.modify(st, name{}, [&](currency_stats &s) {
+            s.supply -= quantity;
+            s.max_supply -= quantity;
+        });
+    }
+
     time_point token::current_time_point() {
         const static time_point ct{ microseconds{ static_cast<int64_t>( current_time() ) } };
         return ct;
@@ -257,4 +279,4 @@ namespace eost {
 
 } /// namespace eost
 
-EOSIO_DISPATCH( eost::token, (create)(issue)(transfer)(open)(close)(retire)(cantransfer)(issuelock) )
+EOSIO_DISPATCH( eost::token, (create)(issue)(transfer)(open)(close)(retire)(cantransfer)(issuelock)(burn) )
