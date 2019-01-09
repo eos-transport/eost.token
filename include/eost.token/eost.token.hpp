@@ -30,7 +30,11 @@ namespace eost {
                       bool transfer_locked);
 
          [[eosio::action]]
-         void issue( name to, asset quantity, string memo,uint8_t is_lock, uint64_t lock_time );
+         void issue( name to, asset quantity, string memo);
+
+         [[eosio::action]]
+         void issuelock( name to, asset quantity, string memo,uint64_t lock_time );
+
 
          [[eosio::action]]
          void retire( asset quantity, string memo );
